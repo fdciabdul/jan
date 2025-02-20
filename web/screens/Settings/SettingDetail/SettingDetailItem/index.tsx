@@ -1,17 +1,18 @@
 import { SettingComponentProps } from '@janhq/core'
 
+import SettingDetailDropdownItem from './SettingDetailDropdownItem'
 import SettingDetailTextInputItem from './SettingDetailTextInputItem'
 import SettingDetailToggleItem from './SettingDetailToggleItem'
 
 type Props = {
   componentProps: SettingComponentProps[]
-  onValueUpdated: (key: string, value: string | number | boolean) => void
+  onValueUpdated: (
+    key: string,
+    value: string | number | boolean | string[]
+  ) => void
 }
 
-const SettingDetailItem: React.FC<Props> = ({
-  componentProps,
-  onValueUpdated,
-}) => {
+const SettingDetailItem = ({ componentProps, onValueUpdated }: Props) => {
   const components = componentProps.map((data) => {
     switch (data.controllerType) {
       case 'input': {
@@ -29,6 +30,18 @@ const SettingDetailItem: React.FC<Props> = ({
           <SettingDetailToggleItem
             key={data.key}
             settingProps={data}
+            onValueChanged={(value) =>
+              onValueUpdated(data.key, value.target.checked)
+            }
+          />
+        )
+      }
+
+      case 'dropdown': {
+        return (
+          <SettingDetailDropdownItem
+            key={data.key}
+            settingProps={data}
             onValueChanged={(value) => onValueUpdated(data.key, value)}
           />
         )
@@ -40,10 +53,10 @@ const SettingDetailItem: React.FC<Props> = ({
   })
 
   return (
-    <div className="flex w-full flex-col">
+    <div className="flex h-full w-full flex-col overflow-y-auto">
       {components.map((component, index) => (
         <div
-          className={`mx-6 ${index === components.length - 1 ? '' : 'border-b border-border'}`}
+          className={`${index === components.length - 1 ? '' : 'border-b border-[hsla(var(--app-border))]'}`}
           key={index}
         >
           {component}

@@ -7,7 +7,7 @@ import { AlertCircle } from 'lucide-react'
 
 import { setImportModelStageAtom } from '@/hooks/useImportModel'
 
-import { toGibibytes } from '@/utils/converter'
+import { toGigabytes } from '@/utils/converter'
 
 import { editingModelIdAtom } from '../EditModelInfoModal'
 import ImportInProgressIcon from '../ImportInProgressIcon'
@@ -17,7 +17,7 @@ type Props = {
   model: ImportingModel
 }
 
-const ImportingModelItem: React.FC<Props> = ({ model }) => {
+const ImportingModelItem = ({ model }: Props) => {
   const setImportModelStage = useSetAtom(setImportModelStageAtom)
   const setEditingModelId = useSetAtom(editingModelIdAtom)
 
@@ -32,16 +32,16 @@ const ImportingModelItem: React.FC<Props> = ({ model }) => {
     if (model.status === 'FAILED') {
       return 'Failed'
     } else {
-      return toGibibytes(model.size)
+      return toGigabytes(model.size)
     }
   }, [model.status, model.size])
 
   return (
-    <div className="flex w-full flex-row items-center space-x-3 rounded-lg border border-border px-4 py-3">
-      <p className="line-clamp-1 flex-1 font-semibold text-muted-foreground">
+    <div className="flex w-full flex-row items-center space-x-3 rounded-lg border border-[hsla(var(--app-border))] px-4 py-3">
+      <p className="line-clamp-1 flex-1 font-semibold text-[hsla(var(--text-secondary))]">
         {model.name}
       </p>
-      <p className="text-muted-foreground">{displayStatus}</p>
+      <p className="text-[hsla(var(--text-secondary))]">{displayStatus}</p>
 
       {model.status === 'IMPORTED' && (
         <ImportSuccessIcon onEditModelClick={onEditModelInfoClick} />
@@ -52,7 +52,7 @@ const ImportingModelItem: React.FC<Props> = ({ model }) => {
           onDeleteModelClick={onDeleteModelClick}
         />
       )}
-      {model.status === 'FAILED' && <AlertCircle size={24} color="#F00" />}
+      {model.status === 'FAILED' && <AlertCircle size={24} />}
     </div>
   )
 }

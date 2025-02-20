@@ -18,6 +18,7 @@ module.exports = {
       'slide-in': 'slide-in 1.2s cubic-bezier(.41,.73,.51,1.02)',
       'leave': 'leave 150ms ease-in forwards',
       'bounce-right': 'bounce-right 3s infinite',
+      'spin': 'spin 2s linear infinite',
     },
     keyframes: {
       'wave': {
@@ -47,38 +48,15 @@ module.exports = {
         '40%': { transform: 'translateX(-8px)' },
         '60%': { transform: 'translateX(-4px)' },
       },
+      'spin': {
+        '0%': { transform: 'rotate(0deg)' },
+        '100%': { transform: 'rotate(360deg)' },
+      },
     },
     extend: {
       fontFamily: {
-        fontFamily: {
-          sans: ['Inter var', ...defaultTheme.fontFamily.sans],
-        },
-      },
-      colors: {
-        'background': 'hsl(var(--background))',
-        'foreground': 'hsl(var(--foreground))',
-
-        'card': 'hsl(var(--card))',
-        'card-foreground': 'hsl(var(--card-foreground))',
-
-        'primary': 'hsl(var(--primary))',
-        'primary-foreground': 'hsl(var(--primary-foreground))',
-
-        'secondary': 'hsl(var(--secondary))',
-        'secondary-foreground': 'hsl(var(--secondary-foreground))',
-
-        'muted': 'hsl(var(--muted))',
-        'muted-foreground': 'hsl(var(--muted-foreground))',
-
-        'accent': 'hsl(var(--accent))',
-        'accent-foreground': 'hsl(var(--accent-foreground))',
-
-        'danger': 'hsl(var(--danger))',
-        'danger-foreground': 'hsl(var(--danger-foreground))',
-
-        'border': 'hsl(var(--border))',
-        'input': 'hsl(var(--input))',
-        'ring': 'hsl(var(--ring))',
+        sans: ['Inter', ...defaultTheme.fontFamily.sans],
+        serif: ['Roboto Mono', ...defaultTheme.fontFamily.mono],
       },
     },
   },

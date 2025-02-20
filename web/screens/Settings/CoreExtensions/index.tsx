@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react'
 
-import { Button, ScrollArea } from '@janhq/uikit'
+import { Button, ScrollArea, Badge, Input } from '@janhq/joi'
+
+import { SearchIcon } from 'lucide-react'
 import { Marked, Renderer } from 'marked'
 
 import Loader from '@/containers/Loader'
@@ -12,22 +14,50 @@ import { extensionManager } from '@/extension'
 import Extension from '@/extension/Extension'
 
 const ExtensionCatalog = () => {
-  const [activeExtensions, setActiveExtensions] = useState<Extension[]>([])
+  const [coreActiveExtensions, setCoreActiveExtensions] = useState<Extension[]>(
+    []
+  )
+
+  const [searchText, setSearchText] = useState('')
   const [showLoading, setShowLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  /**
-   * Fetches the active extensions and their preferences from the `extensions` and `preferences` modules.
-   * If the `experimentComponent` extension point is available, it executes the extension point and
-   * appends the returned components to the `experimentRef` element.
-   * If the `ExtensionPreferences` extension point is available, it executes the extension point and
-   * fetches the preferences for each extension using the `preferences.get` function.
-   */
+
   useEffect(() => {
-    const getActiveExtensions = async () => {
-      const exts = await extensionManager.getActive()
-      if (Array.isArray(exts)) setActiveExtensions(exts)
+    const getAllSettings = async () => {
+      const extensionsMenu = []
+      const engineMenu = []
+      const extensions = extensionManager.getAll()
+
+      for (const extension of extensions) {
+        const settings = await extension.getSettings()
+        if (
+          typeof extension.getSettings === 'function' &&
+          'provider' in extension &&
+          typeof extension.provider === 'string'
+        ) {
+          if (
+            (settings && settings.length > 0) ||
+            (await extension.installationState()) !== 'NotRequired'
+          ) {
+            engineMenu.push({
+              ...extension,
+              provider:
+                'provider' in extension &&
+                typeof extension.provider === 'string'
+                  ? extension.provider
+                  : '',
+            })
+          }
+        } else {
+          extensionsMenu.push({
+            ...extension,
+          })
+        }
+      }
+
+      setCoreActiveExtensions(extensionsMenu)
     }
-    getActiveExtensions()
+    getAllSettings()
   }, [])
 
   /**
@@ -73,63 +103,64 @@ const ExtensionCatalog = () => {
 
   return (
     <>
-      <ScrollArea className="h-full w-full px-4">
-        <div className="block w-full">
-          {activeExtensions.map((item, i) => {
-            return (
-              <div
-                key={i}
-                className="flex w-full items-start justify-between border-b border-border py-4 first:pt-4 last:border-none"
-              >
-                <div className="w-4/5 flex-shrink-0 space-y-1.5">
-                  <div className="flex items-center gap-x-2">
-                    <h6 className="text-sm font-semibold">
-                      {item.productName ?? formatExtensionsName(item.name)} v
-                      {item.version}
-                    </h6>
-                  </div>
-                  {
-                    <div
-                      dangerouslySetInnerHTML={{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        __html: marked.parse(item.description ?? '', {
-                          async: false,
-                        }),
-                      }}
-                    />
-                  }
-                </div>
-              </div>
-            )
-          })}
-          {/* Manual Installation */}
-          <div className="flex w-full items-start justify-between border-b border-border py-4 first:pt-0 last:border-none">
-            <div className="w-4/5 flex-shrink-0 space-y-1.5">
-              <div className="flex gap-x-2">
-                <h6 className="text-sm font-semibold capitalize">
-                  Manual Installation
-                </h6>
-              </div>
-              <p className="whitespace-pre-wrap leading-relaxed ">
-                Select an extension file to install (.tgz)
-              </p>
-            </div>
-            <div>
-              <input
-                type="file"
-                style={{ display: 'none' }}
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-              <Button
-                themes="secondaryBlue"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Select
-              </Button>
-            </div>
+      <ScrollArea className="h-full w-full">
+        <div className="flex w-full flex-col items-start justify-between gap-y-2 p-4 sm:flex-row">
+          <div className="w-full sm:w-[300px]">
+            <Input
+              prefixIcon={<SearchIcon size={16} />}
+              placeholder="Search"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              clearable={searchText.length > 0}
+              onClear={() => setSearchText('')}
+            />
           </div>
+          <div>
+            <input
+              type="file"
+              hidden
+              ref={fileInputRef}
+              onChange={handleFileChange}
+            />
+            <Button onClick={() => fileInputRef.current?.click()}>
+              Install Extension
+            </Button>
+          </div>
+        </div>
+
+        <div className="block w-full px-4">
+          {coreActiveExtensions
+            .filter((x) => x.name.includes(searchText.toLowerCase().trim()))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((item, i) => {
+              return (
+                <div
+                  key={i}
+                  className="flex w-full flex-col items-start justify-between py-3 sm:flex-row"
+                >
+                  <div className="w-full flex-shrink-0 space-y-1.5">
+                    <div className="flex items-center gap-x-2">
+                      <h6 className="line-clamp-1 font-semibold">
+                        {item.productName ?? formatExtensionsName(item.name)}
+                      </h6>
+                      <Badge variant="outline" theme="secondary">
+                        v{item.version}
+                      </Badge>
+                    </div>
+                    {
+                      <div
+                        className="font-medium leading-relaxed text-[hsla(var(--text-secondary))]"
+                        dangerouslySetInnerHTML={{
+                          __html: marked.parse(item.description ?? '', {
+                            async: false,
+                          }),
+                        }}
+                      />
+                    }
+                  </div>
+                </div>
+              )
+            })}
         </div>
       </ScrollArea>
       {showLoading && <Loader description="Installing..." />}
@@ -142,7 +173,10 @@ const marked: Marked = new Marked({
     link: (href, title, text) => {
       return Renderer.prototype.link
         ?.apply(this, [href, title, text])
-        .replace('<a', "<a class='text-blue-500' target='_blank'")
+        .replace(
+          '<a',
+          "<a class='text-[hsla(var(--app-link))]' target='_blank'"
+        )
     },
   },
 })

@@ -1,28 +1,70 @@
-import { ReactNode, useEffect, useRef } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useRef } from 'react'
 
-type Props = {
-  children: ReactNode
-}
+import { ScrollArea } from '@janhq/joi'
 
-const ListContainer: React.FC<Props> = ({ children }) => {
+import { useAtomValue } from 'jotai'
+
+import { activeThreadAtom } from '@/helpers/atoms/Thread.atom'
+
+const ListContainer = ({ children }: PropsWithChildren) => {
   const listRef = useRef<HTMLDivElement>(null)
+  const prevScrollTop = useRef(0)
+  const isUserManuallyScrollingUp = useRef(false)
+  const activeThread = useAtomValue(activeThreadAtom)
+  const prevActiveThread = useRef(activeThread)
+
+  // Handle active thread changes
+  useEffect(() => {
+    if (prevActiveThread.current?.id !== activeThread?.id) {
+      isUserManuallyScrollingUp.current = false
+      const scrollHeight = listRef.current?.scrollHeight ?? 0
+      listRef.current?.scrollTo({
+        top: scrollHeight,
+        behavior: 'instant',
+      })
+      prevActiveThread.current = activeThread // Update the previous active thread reference
+    }
+  }, [activeThread])
+
+  const handleScroll = useCallback((event: React.UIEvent<HTMLElement>) => {
+    const currentScrollTop = event.currentTarget.scrollTop
+
+    if (prevScrollTop.current > currentScrollTop) {
+      isUserManuallyScrollingUp.current = true
+    } else {
+      const currentScrollTop = event.currentTarget.scrollTop
+      const scrollHeight = event.currentTarget.scrollHeight
+      const clientHeight = event.currentTarget.clientHeight
+
+      if (currentScrollTop + clientHeight >= scrollHeight) {
+        isUserManuallyScrollingUp.current = false
+      }
+    }
+
+    if (isUserManuallyScrollingUp.current === true) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    prevScrollTop.current = currentScrollTop
+  }, [])
 
   useEffect(() => {
+    if (isUserManuallyScrollingUp.current === true || !listRef.current) return
     const scrollHeight = listRef.current?.scrollHeight ?? 0
-
     listRef.current?.scrollTo({
       top: scrollHeight,
       behavior: 'instant',
     })
-  })
+  }, [listRef.current?.scrollHeight, isUserManuallyScrollingUp])
 
   return (
-    <div
+    <ScrollArea
+      className="flex h-full w-full flex-col overflow-x-hidden"
       ref={listRef}
-      className="flex h-full w-full flex-col overflow-y-scroll"
+      onScroll={handleScroll}
     >
       {children}
-    </div>
+    </ScrollArea>
   )
 }
 

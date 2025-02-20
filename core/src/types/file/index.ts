@@ -6,8 +6,8 @@ export type FileStat = {
 export type DownloadState = {
   modelId: string // TODO: change to download id
   fileName: string
-  time: DownloadTime
-  speed: number
+  time?: DownloadTime
+  speed?: number
 
   percent: number
   size: DownloadSize
@@ -16,7 +16,7 @@ export type DownloadState = {
 
   error?: string
   extensionId?: string
-  downloadType?: DownloadType
+  downloadType?: DownloadType | string
   localPath?: string
 }
 
@@ -40,7 +40,15 @@ export type DownloadRequest = {
    */
   extensionId?: string
 
-  downloadType?: DownloadType
+  /**
+   * The model ID of the model that initiated the download.
+   */
+  modelId?: string
+
+  /**
+   * The download type.
+   */
+  downloadType?: DownloadType | string
 }
 
 type DownloadTime = {
@@ -51,4 +59,19 @@ type DownloadTime = {
 type DownloadSize = {
   total: number
   transferred: number
+}
+
+/**
+ * The file metadata
+ */
+export type FileMetadata = {
+  /**
+   * The origin file path.
+   */
+  file_path: string
+
+  /**
+   * The file name.
+   */
+  file_name: string
 }

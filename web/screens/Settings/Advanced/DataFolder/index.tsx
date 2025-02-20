@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useState } from 'react'
 
-import { fs, AppConfiguration, isSubdirectory } from '@janhq/core'
-import { Button, Input } from '@janhq/uikit'
+import { AppConfiguration, isSubdirectory } from '@janhq/core'
+import { Button, Input } from '@janhq/joi'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { PencilIcon, FolderOpenIcon } from 'lucide-react'
 
@@ -51,11 +51,10 @@ const DataFolder = () => {
       return
     }
 
-    const newDestChildren: string[] = await fs.readdirSync(destFolder)
-    const isNotEmpty =
-      newDestChildren.filter((x) => x !== '.DS_Store').length > 0
+    const isEmpty: boolean =
+      await window.core?.api?.isDirectoryEmpty(destFolder)
 
-    if (isNotEmpty) {
+    if (!isEmpty) {
       setDestinationPath(destFolder)
       showDestNotEmptyConfirm(true)
       return
@@ -74,16 +73,7 @@ const DataFolder = () => {
     if (!destinationPath) return
     try {
       setShowLoader(true)
-      const appConfiguration: AppConfiguration =
-        await window.core?.api?.getAppConfigurations()
-      const currentJanDataFolder = appConfiguration.data_folder
-      appConfiguration.data_folder = destinationPath
-      const { err } = await fs.syncFile(currentJanDataFolder, destinationPath)
-      if (err) throw err
-      await window.core?.api?.updateAppConfiguration(appConfiguration)
-      console.debug(
-        `File sync finished from ${currentJanDataFolder} to ${destinationPath}`
-      )
+      await window.core?.api?.changeDataFolder(destinationPath)
       localStorage.setItem(SUCCESS_SET_NEW_DESTINATION, 'true')
       setTimeout(() => {
         setShowLoader(false)
@@ -98,23 +88,21 @@ const DataFolder = () => {
 
   return (
     <Fragment>
-      <div className="flex w-full items-start justify-between border-b border-border py-4 first:pt-0 last:border-none">
-        <div className="flex-shrink-0 space-y-1.5">
+      <div className="flex w-full flex-col items-start justify-between gap-4 border-b border-[hsla(var(--app-border))] py-4 first:pt-0 last:border-none sm:flex-row">
+        <div className="space-y-1">
           <div className="flex gap-x-2">
-            <h6 className="text-sm font-semibold capitalize">
-              Jan Data Folder
-            </h6>
+            <h6 className="font-semibold capitalize">Jan Data Folder</h6>
           </div>
-          <p className="leading-relaxed">
-            Where messages, model configurations, and other user data are
-            placed.
+          <p className="font-medium leading-relaxed text-[hsla(var(--text-secondary))]">
+            Default location for messages and other user data.
           </p>
         </div>
         <div className="flex items-center gap-x-3">
           <div className="relative">
             <Input
+              data-testid="jan-data-folder-input"
               value={janDataFolderPath}
-              className="w-[240px] pr-8"
+              className="w-full pr-8 sm:w-[240px]"
               disabled
             />
             <FolderOpenIcon
@@ -124,9 +112,10 @@ const DataFolder = () => {
             />
           </div>
           <Button
-            size="sm"
-            themes="outline"
-            className="h-9 w-9 p-0"
+            size="small"
+            theme="ghost"
+            variant="outline"
+            className="h-9 w-9 flex-shrink-0 p-0"
             onClick={onChangeFolderClick}
           >
             <PencilIcon size={16} />

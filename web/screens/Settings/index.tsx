@@ -2,25 +2,32 @@ import { useEffect } from 'react'
 
 import { useSetAtom } from 'jotai'
 
-import { SUCCESS_SET_NEW_DESTINATION } from './Advanced/DataFolder'
+import CenterPanelContainer from '@/containers/CenterPanelContainer'
 
-import SettingDetail from './SettingDetail'
-import SettingMenu from './SettingMenu'
+import SettingDetail from '@/screens/Settings/SettingDetail'
+import SettingLeftPanel from '@/screens/Settings/SettingLeftPanel'
+
+import { SUCCESS_SET_NEW_DESTINATION } from './Advanced/DataFolder'
 
 import { selectedSettingAtom } from '@/helpers/atoms/Setting.atom'
 
 export const SettingScreenList = [
   'My Models',
-  'My Settings',
+  'Preferences',
+  'Keyboard Shortcuts',
+  'Hardware',
+  'Privacy',
   'Advanced Settings',
+  'Engines',
   'Extensions',
 ] as const
 
 export type SettingScreenTuple = typeof SettingScreenList
 export type SettingScreen = SettingScreenTuple[number]
 
-const SettingsScreen: React.FC = () => {
+const SettingsScreen = () => {
   const setSelectedSettingScreen = useSetAtom(selectedSettingAtom)
+
   useEffect(() => {
     if (localStorage.getItem(SUCCESS_SET_NEW_DESTINATION) === 'true') {
       setSelectedSettingScreen('Advanced Settings')
@@ -29,12 +36,11 @@ const SettingsScreen: React.FC = () => {
   }, [setSelectedSettingScreen])
 
   return (
-    <div
-      data-testid="testid-setting-description"
-      className="flex h-full bg-background"
-    >
-      <SettingMenu />
-      <SettingDetail />
+    <div data-testid="testid-setting-description" className="flex h-full">
+      <SettingLeftPanel />
+      <CenterPanelContainer>
+        <SettingDetail />
+      </CenterPanelContainer>
     </div>
   )
 }

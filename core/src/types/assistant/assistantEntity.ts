@@ -6,6 +6,7 @@
 export type AssistantTool = {
   type: string
   enabled: boolean
+  useTimeWeightedRetriever?: boolean
   settings: any
 }
 
@@ -34,4 +35,11 @@ export type Assistant = {
   file_ids: string[]
   /** Represents the metadata of the object. */
   metadata?: Record<string, unknown>
+}
+
+export interface CodeInterpreterTool {
+  /**
+   * The type of tool being defined: `code_interpreter`
+   */
+  type: 'code_interpreter'
 }

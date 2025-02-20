@@ -1,11 +1,4 @@
-import {
-  Textarea,
-  Tooltip,
-  TooltipArrow,
-  TooltipContent,
-  TooltipPortal,
-  TooltipTrigger,
-} from '@janhq/uikit'
+import { TextArea, Tooltip } from '@janhq/joi'
 
 import { InfoIcon } from 'lucide-react'
 
@@ -19,38 +12,37 @@ type Props = {
   onValueChanged?: (e: string | number | boolean) => void
 }
 
-const ModelConfigInput: React.FC<Props> = ({
+const ModelConfigInput = ({
   title,
   disabled = false,
   value,
   description,
   placeholder,
   onValueChanged,
-}) => (
-  <div className="flex flex-col">
-    <div className="mb-2 flex items-center gap-x-2">
-      <p className="text-sm font-semibold text-zinc-500 dark:text-gray-300">
-        {title}
-      </p>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <InfoIcon size={16} className="flex-shrink-0 dark:text-gray-500" />
-        </TooltipTrigger>
-        <TooltipPortal>
-          <TooltipContent side="top" className="max-w-[240px]">
-            <span>{description}</span>
-            <TooltipArrow />
-          </TooltipContent>
-        </TooltipPortal>
-      </Tooltip>
+}: Props) => {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-2 flex items-center gap-x-2">
+        <p className="font-medium">{title}</p>
+        <Tooltip
+          trigger={
+            <InfoIcon
+              size={16}
+              className="flex-shrink-0 text-[hsla(var(--text-secondary))]"
+            />
+          }
+          content={description}
+        />
+      </div>
+      <TextArea
+        placeholder={placeholder}
+        onChange={(e) => onValueChanged?.(e.target.value)}
+        autoResize
+        value={value}
+        disabled={disabled}
+      />
     </div>
-    <Textarea
-      placeholder={placeholder}
-      onChange={(e) => onValueChanged?.(e.target.value)}
-      value={value}
-      disabled={disabled}
-    />
-  </div>
-)
+  )
+}
 
 export default ModelConfigInput

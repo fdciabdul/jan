@@ -8,7 +8,6 @@ error.log
 node_modules
 *.tgz
 !charts/server/charts/*.tgz
-yarn.lock
 dist
 build
 .DS_Store
@@ -16,10 +15,11 @@ electron/renderer
 electron/models
 electron/docs
 electron/engines
+electron/themes
 electron/playwright-report
 server/pre-install
 package-lock.json
-
+coverage
 *.log
 core/lib/**
 
@@ -38,3 +38,16 @@ extensions/*-extension/bin/vulkaninfo
 
 # Turborepo
 .turbo
+electron/test-data
+electron/test-results
+core/test_results.html
+coverage
+.yarn
+.yarnrc
+test_results.html
+*.tsbuildinfo
+electron/shared/**
+
+# docs
+docs/yarn.lock
+electron/.version.bak

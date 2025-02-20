@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 
-import { fs, AppConfiguration } from '@janhq/core'
+import { fs, AppConfiguration, EngineManager } from '@janhq/core'
 import { atom, useAtomValue, useSetAtom } from 'jotai'
 
 import { useActiveModel } from './useActiveModel'
@@ -34,28 +34,46 @@ export default function useFactoryReset() {
       }
 
       const janDataFolderPath = appConfiguration!.data_folder
+      // 1: Stop running model
+      setFactoryResetState(FactoryResetState.StoppingModel)
+      await stopModel()
 
+      await Promise.all(
+        EngineManager.instance()
+          .engines.values()
+          .map(async (engine) => {
+            await engine.onUnload()
+          })
+      )
+
+      await new Promise((resolve) => setTimeout(resolve, 4000))
+
+      // 2: Delete the old jan data folder
+      setFactoryResetState(FactoryResetState.DeletingData)
+      await fs.rm(janDataFolderPath)
+
+      // 3: Set the default jan data folder
       if (!keepCurrentFolder) {
         // set the default jan data folder to user's home directory
         const configuration: AppConfiguration = {
           data_folder: defaultJanDataFolder,
           quick_ask: appConfiguration?.quick_ask ?? false,
+          distinct_id: appConfiguration?.distinct_id,
         }
         await window.core?.api?.updateAppConfiguration(configuration)
       }
 
-      setFactoryResetState(FactoryResetState.StoppingModel)
-      await stopModel()
-      await new Promise((resolve) => setTimeout(resolve, 4000))
+      // Perform factory reset
+      await window.core?.api?.factoryReset()
 
-      setFactoryResetState(FactoryResetState.DeletingData)
-      await fs.rm(janDataFolderPath)
-
+      // 4: Clear app local storage
       setFactoryResetState(FactoryResetState.ClearLocalStorage)
       // reset the localStorage
       localStorage.clear()
 
-      await window.core?.api?.relaunch()
+      window.core = undefined
+      // 5: Relaunch the app
+      window.location.reload()
     },
     [defaultJanDataFolder, stopModel, setFactoryResetState]
   )

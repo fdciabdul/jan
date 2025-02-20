@@ -34,7 +34,7 @@ export class Downloader implements Processor {
     }
     const array = normalizedPath.split(sep)
     const fileName = array.pop() ?? ''
-    const modelId = array.pop() ?? ''
+    const modelId = downloadRequest.modelId ?? array.pop() ?? ''
 
     const destination = resolve(getJanDataFolderPath(), normalizedPath)
     const rq = request({ url, strictSSL, proxy })
@@ -49,11 +49,6 @@ export class Downloader implements Processor {
     const initialDownloadState: DownloadState = {
       modelId,
       fileName,
-      time: {
-        elapsed: 0,
-        remaining: 0,
-      },
-      speed: 0,
       percent: 0,
       size: {
         total: 0,
@@ -99,7 +94,11 @@ export class Downloader implements Processor {
       })
       .on('end', () => {
         const currentDownloadState = DownloadManager.instance.downloadProgressMap[modelId]
-        if (currentDownloadState && DownloadManager.instance.networkRequests[normalizedPath]) {
+        if (
+          currentDownloadState &&
+          DownloadManager.instance.networkRequests[normalizedPath] &&
+          DownloadManager.instance.downloadProgressMap[modelId]?.downloadState !== 'error'
+        ) {
           // Finished downloading, rename temp file to actual file
           renameSync(downloadingTempFile, destination)
           const downloadState: DownloadState = {
@@ -135,26 +134,5 @@ export class Downloader implements Processor {
 
   pauseDownload(_observer: any, fileName: any) {
     DownloadManager.instance.networkRequests[fileName]?.pause()
-  }
-
-  async getFileSize(_observer: any, url: string): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const request = require('request')
-      request(
-        {
-          url,
-          method: 'HEAD',
-        },
-        function (err: any, response: any) {
-          if (err) {
-            console.error('Getting file size failed:', err)
-            reject(err)
-          } else {
-            const size: number = response.headers['content-length'] ?? -1
-            resolve(size)
-          }
-        }
-      )
-    })
   }
 }

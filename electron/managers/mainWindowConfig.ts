@@ -1,17 +1,21 @@
-const DEFAULT_WIDTH = 1200
 const DEFAULT_MIN_WIDTH = 400
-const DEFAULT_HEIGHT = 800
+const DEFAULT_MIN_HEIGHT = 600
 
 export const mainWindowConfig: Electron.BrowserWindowConstructorOptions = {
-  width: DEFAULT_WIDTH,
-  minWidth: DEFAULT_MIN_WIDTH,
-  height: DEFAULT_HEIGHT,
   skipTaskbar: false,
+  minWidth: DEFAULT_MIN_WIDTH,
+  minHeight: DEFAULT_MIN_HEIGHT,
   show: true,
-  trafficLightPosition: {
-    x: 10,
-    y: 15,
-  },
+  // we want to go frameless on windows and linux
+  transparent: process.platform === 'darwin',
+  frame: process.platform === 'darwin',
   titleBarStyle: 'hiddenInset',
-  vibrancy: 'sidebar',
+  vibrancy: 'fullscreen-ui',
+  visualEffectState: 'active',
+  backgroundMaterial: 'acrylic',
+  autoHideMenuBar: true,
+  trafficLightPosition: {
+    x: 16,
+    y: 10,
+  },
 }

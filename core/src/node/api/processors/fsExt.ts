@@ -1,7 +1,7 @@
-import { join } from 'path'
-import fs from 'fs'
+import { basename, join } from 'path'
+import fs, { readdirSync } from 'fs'
 import { appResourcePath, normalizeFilePath } from '../../helper/path'
-import { getJanDataFolderPath, getJanDataFolderPath as getPath } from '../../helper'
+import { defaultAppConfig, getJanDataFolderPath, getJanDataFolderPath as getPath } from '../../helper'
 import { Processor } from './Processor'
 import { FileStat } from '../../../types'
 
@@ -18,19 +18,6 @@ export class FSExt implements Processor {
     return func(...args)
   }
 
-  // Handles the 'syncFile' IPC event. This event is triggered to synchronize a file from a source path to a destination path.
-  syncFile(src: string, dest: string) {
-    const reflect = require('@alumna/reflect')
-    return reflect({
-      src,
-      dest,
-      recursive: true,
-      delete: false,
-      overwrite: true,
-      errorOnExist: false,
-    })
-  }
-
   // Handles the 'getJanDataFolderPath' IPC event. This event is triggered to get the user space path.
   getJanDataFolderPath() {
     return Promise.resolve(getPath())
@@ -41,9 +28,10 @@ export class FSExt implements Processor {
     return appResourcePath()
   }
 
-  // Handles the 'getUserHomePath' IPC event. This event is triggered to get the user home path.
+  // Handles the 'getUserHomePath' IPC event. This event is triggered to get the user app data path.
+  // CAUTION: This would not return OS home path but the app data path.
   getUserHomePath() {
-    return process.env[process.platform == 'win32' ? 'USERPROFILE' : 'HOME']
+    return defaultAppConfig().data_folder
   }
 
   // handle fs is directory here
@@ -70,8 +58,10 @@ export class FSExt implements Processor {
   writeBlob(path: string, data: any) {
     try {
       const normalizedPath = normalizeFilePath(path)
+      
       const dataBuffer = Buffer.from(data, 'base64')
-      fs.writeFileSync(join(getJanDataFolderPath(), normalizedPath), dataBuffer)
+      const writePath = join(getJanDataFolderPath(), normalizedPath)
+      fs.writeFileSync(writePath, dataBuffer)
     } catch (err) {
       console.error(`writeFile ${path} result: ${err}`)
     }
@@ -87,5 +77,54 @@ export class FSExt implements Processor {
         }
       })
     })
+  }
+
+  async getGgufFiles(paths: string[]) {
+    const sanitizedFilePaths: {
+      path: string
+      name: string
+      size: number
+    }[] = []
+    for (const filePath of paths) {
+      const normalizedPath = normalizeFilePath(filePath)
+     
+      const isExist = fs.existsSync(normalizedPath)
+      if (!isExist) continue
+      const fileStats = fs.statSync(normalizedPath)
+      if (!fileStats) continue
+      if (!fileStats.isDirectory()) {
+        const fileName = await basename(normalizedPath)
+        sanitizedFilePaths.push({
+          path: normalizedPath,
+          name: fileName,
+          size: fileStats.size,
+        })
+      } else {
+        // allowing only one level of directory
+        const files = await readdirSync(normalizedPath)
+  
+        for (const file of files) {
+          const fullPath = await join(normalizedPath, file)
+          const fileStats = await fs.statSync(fullPath)
+          if (!fileStats || fileStats.isDirectory()) continue
+  
+          sanitizedFilePaths.push({
+            path: fullPath,
+            name: file,
+            size: fileStats.size,
+          })
+        }
+      }
+    }
+    const unsupportedFiles = sanitizedFilePaths.filter(
+      (file) => !file.path.endsWith('.gguf')
+    )
+    const supportedFiles = sanitizedFilePaths.filter((file) =>
+      file.path.endsWith('.gguf')
+    )
+    return {
+      unsupportedFiles,
+      supportedFiles,
+    }
   }
 }

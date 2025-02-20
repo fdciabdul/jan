@@ -1,7 +1,5 @@
 import React from 'react'
 
-import { ModelMetadata } from '@janhq/core'
-import { Badge } from '@janhq/uikit'
 import { useAtomValue } from 'jotai'
 
 import { useActiveModel } from '@/hooks/useActiveModel'
@@ -9,8 +7,6 @@ import { useActiveModel } from '@/hooks/useActiveModel'
 import { useSettings } from '@/hooks/useSettings'
 
 import NotEnoughMemoryLabel from './NotEnoughMemoryLabel'
-
-import RecommendedLabel from './RecommendedLabel'
 
 import SlowOnYourDeviceLabel from './SlowOnYourDeviceLabel'
 
@@ -21,17 +17,11 @@ import {
 } from '@/helpers/atoms/SystemBar.atom'
 
 type Props = {
-  metadata: ModelMetadata
-}
-const UnsupportedModel = () => {
-  return (
-    <Badge className="space-x-1 rounded-md" themes="warning">
-      <span>Coming Soon</span>
-    </Badge>
-  )
+  size?: number
+  compact?: boolean
 }
 
-const ModelLabel: React.FC<Props> = ({ metadata }) => {
+const ModelLabel = ({ size, compact }: Props) => {
   const { activeModel } = useActiveModel()
   const totalRam = useAtomValue(totalRamAtom)
   const usedRam = useAtomValue(usedRamAtom)
@@ -39,33 +29,33 @@ const ModelLabel: React.FC<Props> = ({ metadata }) => {
   const { settings } = useSettings()
 
   const getLabel = (size: number) => {
-    const minimumRamModel = size * 1.25
-    const availableRam =
-      settings?.run_mode === 'gpu'
-        ? availableVram * 1000000 // MB to bytes
-        : totalRam - usedRam + (activeModel?.metadata.size ?? 0)
+    const minimumRamModel = (size * 1.25) / (1024 * 1024)
+
+    const availableRam = settings?.gpus?.some((gpu) => gpu.activated)
+      ? availableVram * 1000000 // MB to bytes
+      : totalRam -
+        (usedRam +
+          (activeModel?.metadata?.size
+            ? (activeModel.metadata.size * 1.25) / (1024 * 1024)
+            : 0))
+
     if (minimumRamModel > totalRam) {
       return (
         <NotEnoughMemoryLabel
-          unit={settings?.run_mode === 'gpu' ? 'VRAM' : 'RAM'}
+          unit={settings?.gpus?.some((gpu) => gpu.activated) ? 'VRAM' : 'RAM'}
+          compact={compact}
         />
       )
     }
-    if (minimumRamModel < availableRam) {
-      return <RecommendedLabel />
-    }
+
     if (minimumRamModel < totalRam && minimumRamModel > availableRam) {
-      return <SlowOnYourDeviceLabel />
+      return <SlowOnYourDeviceLabel compact={compact} />
     }
 
     return null
   }
 
-  return metadata.tags.includes('Coming Soon') ? (
-    <UnsupportedModel />
-  ) : (
-    getLabel(metadata.size ?? 0)
-  )
+  return getLabel(size ?? 0)
 }
 
 export default React.memo(ModelLabel)

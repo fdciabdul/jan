@@ -28,5 +28,7 @@ export default function useDeleteModel() {
   return { deleteModel }
 }
 
-const localDeleteModel = async (id: string) =>
-  extensionManager.get<ModelExtension>(ExtensionTypeEnum.Model)?.deleteModel(id)
+const localDeleteModel = async (model: string) =>
+  extensionManager
+    .get<ModelExtension>(ExtensionTypeEnum.Model)
+    ?.deleteModel(model)

@@ -1,6 +1,8 @@
-import { SettingComponentProps } from '../types'
+import { Model, ModelEvent, SettingComponentProps } from '../types'
 import { getJanDataFolderPath, joinPath } from './core'
+import { events } from './events'
 import { fs } from './fs'
+import { ModelManager } from './models'
 
 export enum ExtensionTypeEnum {
   Assistant = 'assistant',
@@ -9,6 +11,8 @@ export enum ExtensionTypeEnum {
   Model = 'model',
   SystemMonitoring = 'systemMonitoring',
   HuggingFace = 'huggingFace',
+  Engine = 'engine',
+  Hardware = 'hardware',
 }
 
 export interface ExtensionType {
@@ -103,6 +107,21 @@ export abstract class BaseExtension implements ExtensionType {
     return undefined
   }
 
+  /**
+   * Registers models - it persists in-memory shared ModelManager instance's data map.
+   * @param models
+   */
+  async registerModels(models: Model[]): Promise<void> {
+    for (const model of models) {
+      ModelManager.instance().register(model)
+    }
+  }
+
+  /**
+   * Register settings for the extension.
+   * @param settings
+   * @returns
+   */
   async registerSettings(settings: SettingComponentProps[]): Promise<void> {
     if (!this.name) {
       console.error('Extension name is not defined')
@@ -118,16 +137,33 @@ export abstract class BaseExtension implements ExtensionType {
       setting.extensionName = this.name
     })
     try {
-      await fs.mkdir(extensionSettingFolderPath)
+      if (!(await fs.existsSync(extensionSettingFolderPath)))
+        await fs.mkdir(extensionSettingFolderPath)
       const settingFilePath = await joinPath([extensionSettingFolderPath, this.settingFileName])
 
-      if (await fs.existsSync(settingFilePath)) return
+      // Persists new settings
+      if (await fs.existsSync(settingFilePath)) {
+        const oldSettings = JSON.parse(await fs.readFileSync(settingFilePath, 'utf-8'))
+        settings.forEach((setting) => {
+          // Keep setting value
+          if (setting.controllerProps && Array.isArray(oldSettings))
+            setting.controllerProps.value = oldSettings.find(
+              (e: any) => e.key === setting.key
+            )?.controllerProps?.value
+        })
+      }
       await fs.writeFileSync(settingFilePath, JSON.stringify(settings, null, 2))
     } catch (err) {
       console.error(err)
     }
   }
 
+  /**
+   * Get the setting value for the key.
+   * @param key
+   * @param defaultValue
+   * @returns
+   */
   async getSetting<T>(key: string, defaultValue: T) {
     const keySetting = (await this.getSettings()).find((setting) => setting.key === key)
 
@@ -157,6 +193,10 @@ export abstract class BaseExtension implements ExtensionType {
     return
   }
 
+  /**
+   * Get the settings for the extension.
+   * @returns
+   */
   async getSettings(): Promise<SettingComponentProps[]> {
     if (!this.name) return []
 
@@ -168,6 +208,7 @@ export abstract class BaseExtension implements ExtensionType {
     ])
 
     try {
+      if (!(await fs.existsSync(settingPath))) return []
       const content = await fs.readFileSync(settingPath, 'utf-8')
       const settings: SettingComponentProps[] = JSON.parse(content)
       return settings
@@ -177,6 +218,11 @@ export abstract class BaseExtension implements ExtensionType {
     }
   }
 
+  /**
+   * Update the settings for the extension.
+   * @param componentProps
+   * @returns
+   */
   async updateSettings(componentProps: Partial<SettingComponentProps>[]): Promise<void> {
     if (!this.name) return
 

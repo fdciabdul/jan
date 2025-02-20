@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { Fragment, useEffect, useMemo, useState } from 'react'
 
 import {
   BaseExtension,
@@ -14,7 +14,7 @@ import SettingDetailItem from '../SettingDetail/SettingDetailItem'
 import { extensionManager } from '@/extension'
 import { selectedSettingAtom } from '@/helpers/atoms/Setting.atom'
 
-const ExtensionSetting: React.FC = () => {
+const ExtensionSetting = ({ extensionName }: { extensionName?: string }) => {
   const selectedExtensionName = useAtomValue(selectedSettingAtom)
   const [settings, setSettings] = useState<SettingComponentProps[]>([])
   const [installationState, setInstallationState] =
@@ -23,11 +23,16 @@ const ExtensionSetting: React.FC = () => {
     undefined
   )
 
+  const currentExtensionName = useMemo(
+    () => extensionName ?? selectedExtensionName,
+    [selectedExtensionName, extensionName]
+  )
+
   useEffect(() => {
     const getExtensionSettings = async () => {
-      if (!selectedExtensionName) return
+      if (!currentExtensionName) return
       const allSettings: SettingComponentProps[] = []
-      const baseExtension = extensionManager.getByName(selectedExtensionName)
+      const baseExtension = extensionManager.getByName(currentExtensionName)
       if (!baseExtension) return
 
       setBaseExtension(baseExtension)
@@ -40,11 +45,11 @@ const ExtensionSetting: React.FC = () => {
       setInstallationState(await baseExtension.installationState())
     }
     getExtensionSettings()
-  }, [selectedExtensionName])
+  }, [currentExtensionName])
 
   const onValueChanged = async (
     key: string,
-    value: string | number | boolean
+    value: string | number | boolean | string[]
   ) => {
     // find the key in settings state, update it and set the state back
     const newSettings = settings.map((setting) => {
@@ -63,7 +68,7 @@ const ExtensionSetting: React.FC = () => {
   }
 
   return (
-    <>
+    <Fragment>
       {settings.length > 0 && (
         <SettingDetailItem
           componentProps={settings}
@@ -73,7 +78,7 @@ const ExtensionSetting: React.FC = () => {
       {baseExtension && installationState !== 'NotRequired' && (
         <ExtensionItem item={baseExtension} />
       )}
-    </>
+    </Fragment>
   )
 }
 
